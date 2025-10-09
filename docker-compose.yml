@@ -1,0 +1,66 @@
+services:
+  # =====================================
+  # PostgreSQL / Supabase backup service
+  # =====================================
+  backup-postgres:
+    image: postgres:16
+    container_name: backup-postgres
+    restart: no
+    environment:
+      - POSTGRES_HOST=db.example.com
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - BACKUP_NAME=postgres
+      - GDRIVE_REMOTE=gdrive
+      - GDRIVE_PATH=backups/postgres
+    volumes:
+      - ./common:/common
+    entrypoint: ["/bin/bash", "/common/backup.sh"]
+
+  # =====================================
+  # MySQL / MariaDB backup service
+  # =====================================
+  backup-mysql:
+    image: mysql:8
+    container_name: backup-mysql
+    restart: no
+    environment:
+      - MYSQL_HOST=db.example.com
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mydb
+      - MYSQL_USER=myuser
+      - MYSQL_PASSWORD=mypassword
+      - BACKUP_NAME=mysql
+      - GDRIVE_REMOTE=gdrive
+      - GDRIVE_PATH=backups/mysql
+    volumes:
+      - ./common:/common
+    entrypoint: ["/bin/bash", "/common/backup.sh"]
+
+  # =====================================
+  # MongoDB backup service
+  # =====================================
+  backup-mongo:
+    image: mongo:7
+    container_name: backup-mongo
+    restart: no
+    environment:
+      - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/mydb
+      - BACKUP_NAME=mongo
+      - GDRIVE_REMOTE=gdrive
+      - GDRIVE_PATH=backups/mongo
+    volumes:
+      - ./common:/common
+    entrypoint: ["/bin/bash", "/common/backup.sh"]
+
+  # =====================================
+  # Rclone uploader (common tool)
+  # =====================================
+  rclone:
+    image: rclone/rclone:latest
+    container_name: rclone
+    volumes:
+      - ./common:/root/.config/rclone:ro
+    entrypoint: [ "rclone" ]
