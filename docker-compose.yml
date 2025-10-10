@@ -65,5 +65,6 @@ services:
     image: rclone/rclone:latest
     container_name: rclone
     volumes:
-      - ./common:/root/.config/rclone:ro
+      - ./common:/common
+      - ./common/rclone.conf:/root/.config/rclone/rclone.conf:ro
     entrypoint: [ "rclone" ]
