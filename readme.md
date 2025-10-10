@@ -18,7 +18,7 @@ multi-db-backup/
 │   └── backup.sh                 # script for backup + automatic upload
 ```
 
-### Requirement
+### Preparation
 This script is require a `service-account.json`, so here is the tutorial how to get it.
 
 1. Visit [https://console.cloud.google.com](https://console.cloud.google.com/).
@@ -61,16 +61,31 @@ or if you want to see the list files
 ```bash
 docker compose run --rm rclone ls gdrive:database-backup
 ```
-If you don't see any errors, means your service-account.json is successful.
+If you don't see any errors, means your service-account.json is successful connected with your Google Drive.
 
 ### Usage
 After you have the service-account.json and have already made a successful test.  
 Here is the basic usage of this script.
 
+#### Edit the docker-compose.yml
+You have to edit the docker-compose.yml and modify it with your database connection.  
+If you don't use other databases, just leave it as default.
+
 #### Run the script 
+This docker-compose was design to support by running a spesific database service.  
+Technically the command should be like this
+```bash
+docker compose run --rm <service_name>
+```
+
+For example
 ```bash
 docker compose run --rm backup-postgres
+
+# or
 docker compose run --rm backup-mysql
+
+# or
 docker compose run --rm backup-mongo
 ```
 
