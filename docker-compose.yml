@@ -15,6 +15,7 @@ services:
       - BACKUP_NAME=postgres
       - GDRIVE_REMOTE=gdrive
       - GDRIVE_PATH=backups/postgres
+      - RETENTION_DAYS=7
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]
@@ -35,6 +36,7 @@ services:
       - BACKUP_NAME=mysql
       - GDRIVE_REMOTE=gdrive
       - GDRIVE_PATH=backups/mysql
+      - RETENTION_DAYS=7
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]
@@ -51,6 +53,7 @@ services:
       - BACKUP_NAME=mongo
       - GDRIVE_REMOTE=gdrive
       - GDRIVE_PATH=backups/mongo
+      - RETENTION_DAYS=7
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]

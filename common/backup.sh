@@ -1,60 +1,76 @@
 #!/bin/bash
 set -e
 
-# Timestamp
+# ==============================================
+# CONFIG
+# ==============================================
 DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 TMP_DIR="/tmp/backup"
 mkdir -p "$TMP_DIR"
 
-# Path ke file JSON Service Account
 SERVICE_ACCOUNT_FILE="/common/service-account.json"
+RCLONE_CONF_DIR="$HOME/.config/rclone"
+RCLONE_CONF_FILE="$RCLONE_CONF_DIR/rclone.conf"
 
-# Pastikan rclone tersedia
+# Default retention: 7 days
+RETENTION_DAYS=${RETENTION_DAYS:-7}
+
+# ==============================================
+# INSTALL & CONFIGURE RCLONE
+# ==============================================
 if ! command -v rclone &> /dev/null; then
   echo "Installing rclone..."
   curl -s https://rclone.org/install.sh | bash
 fi
 
-# Buat rclone.conf dinamis
-mkdir -p ~/.config/rclone
-cat > ~/.config/rclone/rclone.conf <<EOF
+mkdir -p "$RCLONE_CONF_DIR"
+cat > "$RCLONE_CONF_FILE" <<EOF
 [gdrive]
 type = drive
 scope = drive
 service_account_file = ${SERVICE_ACCOUNT_FILE}
 EOF
 
-# Fungsi upload ke Google Drive
+# ==============================================
+# FUNCTIONS
+# ==============================================
 upload_to_drive() {
   local file=$1
   local remote=$2
   local path=$3
-  echo "Uploading $file → $remote:$path/"
+
+  echo "📤 Uploading $file → $remote:$path/"
   rclone copy "$file" "$remote:$path/" --progress
+
+  echo "🧹 Cleaning up old backups (> ${RETENTION_DAYS} days)..."
+  rclone delete "$remote:$path" --min-age ${RETENTION_DAYS}d --verbose
+  rclone rmdirs "$remote:$path" --leave-root --verbose
 }
 
-# Deteksi tipe backup
+# ==============================================
+# BACKUP LOGIC
+# ==============================================
 if [ -n "$POSTGRES_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
-  echo "Backing up PostgreSQL..."
+  echo "🗃 Backing up PostgreSQL: $POSTGRES_DB@$POSTGRES_HOST"
   PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
   upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
 
 elif [ -n "$MYSQL_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
-  echo "Backing up MySQL..."
+  echo "🗃 Backing up MySQL: $MYSQL_DATABASE@$MYSQL_HOST"
   mysqldump -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
   upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
 
 elif [ -n "$MONGO_URI" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.gz"
-  echo "Backing up MongoDB..."
+  echo "🗃 Backing up MongoDB: $MONGO_URI"
   mongodump --uri="$MONGO_URI" --archive="$FILE" --gzip
   upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
 
 else
-  echo "No database environment detected. Please set one of POSTGRES_HOST, MYSQL_HOST, or MONGO_URI."
+  echo "❌ No database environment detected. Set one of POSTGRES_HOST, MYSQL_HOST, or MONGO_URI."
   exit 1
 fi
 
-echo "✅ Backup completed successfully!"
+echo "✅ Backup completed successfully at $DATE"
