@@ -8,7 +8,6 @@ DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 TMP_DIR="/tmp/backup"
 mkdir -p "$TMP_DIR"
 
-SERVICE_ACCOUNT_FILE="/common/service-account.json"
 RCLONE_CONF_DIR="$HOME/.config/rclone"
 RCLONE_CONF_FILE="$RCLONE_CONF_DIR/rclone.conf"
 
@@ -25,16 +24,16 @@ fi
 
 mkdir -p "$RCLONE_CONF_DIR"
 cat > "$RCLONE_CONF_FILE" <<EOF
-[gdrive]
-type = drive
-scope = drive
-service_account_file = ${SERVICE_ACCOUNT_FILE}
+[b2]
+type = b2
+account = ${B2_ACCOUNT_ID}
+key = ${B2_ACCOUNT_KEY}
 EOF
 
 # ==============================================
 # FUNCTIONS
 # ==============================================
-upload_to_drive() {
+upload_to_remote() {
   local file=$1
   local remote=$2
   local path=$3
@@ -43,7 +42,7 @@ upload_to_drive() {
   rclone copy "$file" "$remote:$path/" --progress
 
   echo "🧹 Cleaning up old backups (> ${RETENTION_DAYS} days)..."
-  rclone delete "$remote:$path" --min-age ${RETENTION_DAYS}d --verbose
+  rclone delete "$remote:$path" --min-age ${RETENTION_DAYS}d --b2-hard-delete --verbose
   rclone rmdirs "$remote:$path" --leave-root --verbose
 }
 
@@ -54,19 +53,19 @@ if [ -n "$POSTGRES_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
   echo "🗃 Backing up PostgreSQL: $POSTGRES_DB@$POSTGRES_HOST"
   PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
-  upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
+  upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MYSQL_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
   echo "🗃 Backing up MySQL: $MYSQL_DATABASE@$MYSQL_HOST"
   mysqldump -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
-  upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
+  upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MONGO_URI" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.gz"
   echo "🗃 Backing up MongoDB: $MONGO_URI"
   mongodump --uri="$MONGO_URI" --archive="$FILE" --gzip
-  upload_to_drive "$FILE" "$GDRIVE_REMOTE" "$GDRIVE_PATH"
+  upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 else
   echo "❌ No database environment detected. Set one of POSTGRES_HOST, MYSQL_HOST, or MONGO_URI."

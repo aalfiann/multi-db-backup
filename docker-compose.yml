@@ -13,9 +13,11 @@ services:
       - POSTGRES_USER=myuser
       - POSTGRES_PASSWORD=mypassword
       - BACKUP_NAME=postgres
-      - GDRIVE_REMOTE=gdrive
-      - GDRIVE_PATH=backups/postgres
       - RETENTION_DAYS=7
+      - REMOTE=b2
+      - REMOTE_PATH=<your-bucket-name>/postgres
+      - B2_ACCOUNT_ID=<keyID>
+      - B2_ACCOUNT_KEY=<applicationKey>
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]
@@ -34,9 +36,11 @@ services:
       - MYSQL_USER=myuser
       - MYSQL_PASSWORD=mypassword
       - BACKUP_NAME=mysql
-      - GDRIVE_REMOTE=gdrive
-      - GDRIVE_PATH=backups/mysql
       - RETENTION_DAYS=7
+      - REMOTE=b2
+      - REMOTE_PATH=<your-bucket-name>/mysql
+      - B2_ACCOUNT_ID=<keyID>
+      - B2_ACCOUNT_KEY=<applicationKey>
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]
@@ -51,9 +55,11 @@ services:
     environment:
       - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/mydb
       - BACKUP_NAME=mongo
-      - GDRIVE_REMOTE=gdrive
-      - GDRIVE_PATH=backups/mongo
       - RETENTION_DAYS=7
+      - REMOTE=b2
+      - REMOTE_PATH=<your-bucket-name>/mongo
+      - B2_ACCOUNT_ID=<keyID>
+      - B2_ACCOUNT_KEY=<applicationKey>
     volumes:
       - ./common:/common
     entrypoint: ["/bin/bash", "/common/backup.sh"]

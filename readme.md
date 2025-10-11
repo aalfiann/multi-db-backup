@@ -1,5 +1,5 @@
 # Multi DB Backup
-A multi db backup will upload your file backup to GDrive via Account Service. 
+A multi db backup will upload your file backup to Blackblaze B2. 
 
 ## Feature
 - ✅ 100% auto — without login and token OAuth
@@ -13,58 +13,50 @@ A multi db backup will upload your file backup to GDrive via Account Service.
 ```bash
 multi-db-backup/
 ├── docker-compose.yml
+├── Dockerfile.backup
 ├── common/
-│   ├── service-account.json      # this file is downloaded from Google Cloud (Service Account key)
+│   ├── rclone.conf               # this file is optional for testing purpose
 │   └── backup.sh                 # script for backup + automatic upload
 ```
 
 ### Preparation
-This script is require a `service-account.json`, so here is the tutorial how to get it.
+This script is require a `Blackblaze account`, so here is the tutorial how to get it.
 
-1. Visit [https://console.cloud.google.com](https://console.cloud.google.com/).
-2. Login with your google account.
-3. Click New Project
-    - **Project Name:** Auto Backup Database
-    - **Location:** (leave default)
-4. Activate the Google Drive API
-    - In the left menu, open `APIs & Services` → `Library`.
-    - Look for `Google Drive API`.
-    - Click `Enable`.
-5. Open `APIs & Services` → `Credentials`.
-    - Click `+ CREATE CREDENTIALS` → `Service account`.
-        - **Service account name:** rclone-backup
-        - **Description:** Used for automated backup uploads via rclone
-    - Click `Create and continue`.
-    - **Role:** choose `Project → Editor` (or `Owner` for full access).
-    - Click `Continue → Done`.
-6. Create file service-account.json.
-    - In the Service Accounts list, click the service account that you create.
-    - Now click the menu tab `Keys`.
-    - Click `Add key → Create new key`. File will automatically downloaded.
-    - Renamed it as `service-account.json` and move it to `common/` directory of this project.
-7. Give an access to your Google Drive Folder.
-    - Visit [https://drive.google.com](https://drive.google.com).
-    - Create new folder, for example `database-backup`.
-    - Right click it folder then click `Share`.
-    - Take the `client_email` from `service-account.json`, for example `rclone-backup@auto-backup-database-474121.iam.gserviceaccount.com`.
-    - Choose that email as `Editor` in `Google Drive Folder`.
-    - Done.
+1. Visit [https://www.backblaze.com/sign-up/cloud-storage](https://www.backblaze.com/sign-up/cloud-storage?referrer=getstarted).
+2. Create your account then try to login.
+3. After login → go to B2 Cloud Storage → Buckets → Create a Bucket
+    - **Bucket Name:** your_web_name-backup
+    - **Private:** Private
+4. Create Application Key
+    - In the left menu, open `Application Keys` → `Add a New Application Key`.
+        - Name of Key: rclone-backup
+        - Allow access to bucket: All or choose what have you created.
+        - Now click `Create New Key`.
+    - Save the result
+        - keyID → **B2_ACCOUNT_ID**
+        - applicationKey → **B2_ACCOUNT_KEY**
+5. Done
 
 ### Make a Test
-If you have finished getting the `service-account.json` by following the tutorial above, now you have to make a test.
+If you have finished getting the `keyID` and `applicationKey` by following the tutorial above, now you have to make a test.
+
+1. Create rclone.conf and put it inside `common/` directory of this project.
 
 ```bash
-docker compose run --rm rclone lsd gdrive:
+[b2]
+type = b2
+account = <keyID>
+key = <applicationKey>
 ```
 
 or if you want to see the list files
 ```bash
-docker compose run --rm rclone ls gdrive:database-backup
+docker compose run --rm rclone -vv ls b2:
 ```
-If you don't see any errors, means your service-account.json is successful connected with your Google Drive.
+If you see your folder then your configuration is succesful.
 
 ### Usage
-After you have the service-account.json and have already made a successful test.  
+After you have already made a successful test.  
 Here is the basic usage of this script.
 
 #### Edit the docker-compose.yml
