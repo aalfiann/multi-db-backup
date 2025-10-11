@@ -52,13 +52,13 @@ upload_to_remote() {
 if [ -n "$POSTGRES_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
   echo "🗃 Backing up PostgreSQL: $POSTGRES_DB@$POSTGRES_HOST"
-  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MYSQL_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
   echo "🗃 Backing up MySQL: $MYSQL_DATABASE@$MYSQL_HOST"
-  mysqldump -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
+  mysqldump -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MONGO_URI" ]; then
