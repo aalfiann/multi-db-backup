@@ -3,8 +3,9 @@ services:
   # PostgreSQL / Supabase backup service
   # =====================================
   backup-postgres:
-    image: postgres:16
-    container_name: backup-postgres
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     restart: no
     environment:
       - POSTGRES_HOST=db.example.com
@@ -26,8 +27,9 @@ services:
   # MySQL / MariaDB backup service
   # =====================================
   backup-mysql:
-    image: mysql:8
-    container_name: backup-mysql
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     restart: no
     environment:
       - MYSQL_HOST=db.example.com
@@ -49,8 +51,9 @@ services:
   # MongoDB backup service
   # =====================================
   backup-mongo:
-    image: mongo:7
-    container_name: backup-mongo
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     restart: no
     environment:
       - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/mydb
