@@ -50,22 +50,44 @@ services:
   # =====================================
   # MongoDB backup service
   # =====================================
-  backup-mongo:
-    build:
-      context: .
-      dockerfile: Dockerfile.backup
-    restart: no
-    environment:
-      - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/mydb
-      - BACKUP_NAME=mongo
-      - RETENTION_DAYS=7
-      - REMOTE=b2
-      - REMOTE_PATH=<your-bucket-name>/mongo
-      - B2_ACCOUNT_ID=<keyID>
-      - B2_ACCOUNT_KEY=<applicationKey>
-    volumes:
-      - ./common:/common
-    entrypoint: ["/bin/bash", "/common/backup.sh"]
+  # backup-mongo:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.backup
+  #   restart: no
+  #   environment:
+  #     - MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/mydb
+  #     - BACKUP_NAME=mongo
+  #     - RETENTION_DAYS=7
+  #     - REMOTE=b2
+  #     - REMOTE_PATH=<your-bucket-name>/mongo
+  #     - B2_ACCOUNT_ID=<keyID>
+  #     - B2_ACCOUNT_KEY=<applicationKey>
+  #   volumes:
+  #     - ./common:/common
+  #   entrypoint: ["/bin/bash", "/common/backup.sh"]
+
+  # =====================================
+  # Folder backup service
+  # =====================================
+  # backup-app-folders:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.backup
+  #   restart: no
+  #   environment:
+  #     - BACKUP_SOURCES=/home/app/web:/home/app/backend  # Multiple folders separate with colon
+  #     - RETENTION_DAYS=7
+  #     - BACKUP_NAME=app-folders
+  #     - REMOTE=b2
+  #     - REMOTE_PATH=<your-bucket-name>/app-folders
+  #     - B2_ACCOUNT_ID=<keyID>
+  #     - B2_ACCOUNT_KEY=<applicationKey>
+  #   volumes:
+  #     - ./common:/common
+  #     - /home/app/web:/home/app/web:ro
+  #     - /home/app/backend:/home/app/backend:ro
+  #   entrypoint: ["/bin/bash", "/common/backup.sh"]
 
   # =====================================
   # Rclone uploader (common tool)

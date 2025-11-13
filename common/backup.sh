@@ -51,14 +51,14 @@ upload_to_remote() {
 # ==============================================
 if [ -n "$POSTGRES_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
-  echo "🗃 Backing up PostgreSQL: $POSTGRES_DB@$POSTGRES_HOST"
-  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
+  echo "🗃 Backing up PostgreSQL: $POSTGRES_DB@$POSTGRES_HOST:${POSTGRES_PORT:-5432}"
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$FILE"
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MYSQL_HOST" ]; then
   FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.sql.gz"
-  echo "🗃 Backing up MySQL: $MYSQL_DATABASE@$MYSQL_HOST"
-  mysqldump -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
+  echo "🗃 Backing up MySQL: $MYSQL_DATABASE@$MYSQL_HOST:${MYSQL_PORT:-3306}"
+  mysqldump -h "$MYSQL_HOST" -P "${MYSQL_PORT:-3306}" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" | gzip > "$FILE"
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$MONGO_URI" ]; then
@@ -67,9 +67,50 @@ elif [ -n "$MONGO_URI" ]; then
   mongodump --uri="$MONGO_URI" --archive="$FILE" --gzip
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
+elif [ -n "$BACKUP_SOURCES" ]; then
+  FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.zip"
+  echo "📁 Backing up multiple folders: $BACKUP_SOURCES"
+  
+  IFS=':' read -ra DIRS <<< "$BACKUP_SOURCES"
+  ZIP_ITEMS=()
+  
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      ZIP_ITEMS+=("$dir")
+      echo "   ✓ Added: $dir"
+    else
+      echo "   ⚠️  Warning: $dir tidak ditemukan"
+    fi
+  done
+  
+  if [ ${#ZIP_ITEMS[@]} -eq 0 ]; then
+    echo "❌ Tidak ada folder yang valid untuk di-backup"
+    exit 1
+  fi
+  
+  echo "📦 Zipping ${#ZIP_ITEMS[@]} folders..."
+  zip -r "$FILE" "${ZIP_ITEMS[@]}" -q
+  
+  if [ $? -eq 0 ] && [ -f "$FILE" ]; then
+    echo "✅ Folders berhasil di-zip: $(du -h "$FILE" | cut -f1)"
+    upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
+  else
+    echo "❌ Gagal membuat zip file"
+    exit 1
+  fi
+
 else
-  echo "❌ No database environment detected. Set one of POSTGRES_HOST, MYSQL_HOST, or MONGO_URI."
+  echo "❌ No database environment or backup source detected."
+  echo "   Set one of: POSTGRES_HOST, MYSQL_HOST, MONGO_URI, or BACKUP_SOURCES"
   exit 1
 fi
+
+# ==============================================
+# CLEANUP
+# ==============================================
+echo "🧹 Cleaning up local temporary files..."
+rm -f "$FILE"
+rm -rf "$TMP_DIR"
+echo "✅ Local cleanup completed"
 
 echo "✅ Backup completed successfully at $DATE"
