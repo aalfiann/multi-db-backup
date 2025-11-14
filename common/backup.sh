@@ -68,34 +68,43 @@ elif [ -n "$MONGO_URI" ]; then
   upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
 
 elif [ -n "$BACKUP_SOURCES" ]; then
-  FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.zip"
+  FILE="$TMP_DIR/${BACKUP_NAME}_${DATE}.tar.gz"
   echo "📁 Backing up multiple folders: $BACKUP_SOURCES"
   
   IFS=':' read -ra DIRS <<< "$BACKUP_SOURCES"
-  ZIP_ITEMS=()
   
+  echo "📦 Creating tar.gz archive..."
+  echo "   Directories to backup:"
+  
+  # List directories and their sizes
+  TOTAL_SIZE=0
   for dir in "${DIRS[@]}"; do
     if [ -d "$dir" ]; then
-      ZIP_ITEMS+=("$dir")
-      echo "   ✓ Added: $dir"
+      DIR_SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "unknown")
+      echo "   ✓ $dir ($DIR_SIZE)"
     else
-      echo "   ⚠️  Warning: $dir tidak ditemukan"
+      echo "   ⚠️  $dir (not found)"
     fi
   done
   
-  if [ ${#ZIP_ITEMS[@]} -eq 0 ]; then
-    echo "❌ Tidak ada folder yang valid untuk di-backup"
-    exit 1
-  fi
+  # Create tar command
+  TAR_CMD="tar -czf \"$FILE\""
+  for dir in "${DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      # Remove leading slash untuk relative path dalam tar
+      RELATIVE_PATH="${dir#/}"
+      TAR_CMD="$TAR_CMD -C / \"$RELATIVE_PATH\""
+    fi
+  done
   
-  echo "📦 Zipping ${#ZIP_ITEMS[@]} folders..."
-  zip -r "$FILE" "${ZIP_ITEMS[@]}" -q
+  echo "   Executing: $TAR_CMD"
   
-  if [ $? -eq 0 ] && [ -f "$FILE" ]; then
-    echo "✅ Folders berhasil di-zip: $(du -h "$FILE" | cut -f1)"
+  # Execute tar command
+  if eval $TAR_CMD; then
+    echo "✅ Backup created successfully: $(du -h "$FILE" | cut -f1)"
     upload_to_remote "$FILE" "$REMOTE" "$REMOTE_PATH"
   else
-    echo "❌ Gagal membuat zip file"
+    echo "❌ Failed to create backup archive"
     exit 1
   fi
 
