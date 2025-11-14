@@ -12,7 +12,6 @@ RUN apt-get update && \
       curl \
       wget \
       unzip \
-      zip \
       gzip \
       postgresql-client-17 \
       default-mysql-client && \
